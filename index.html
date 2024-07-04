@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>MONITOR DHT22</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    var temperatureData = [];
+    var humidityData = [];
+    var maxDataPoints = 20; // Máximo número de puntos en el gráfico
+
+    function updateData() {
+      $.getJSON('https://api.thingspeak.com/channels/2590047/feeds.json?api_key=DQOPCJTIX5K367M0&results=2', function(data) {
+        var feed = data.feeds[0];
+        var temperature = parseFloat(feed.field1);
+        var humidity = parseFloat(feed.field2);
+
+        $('#temperature').text(temperature);
+        $('#humidity').text(humidity);
+
+        if (temperatureData.length >= maxDataPoints) {
+          temperatureData.shift(); // Eliminar el primer elemento si se excede el número máximo de puntos
+        }
+        if (humidityData.length >= maxDataPoints) {
+          humidityData.shift(); // Eliminar el primer elemento si se excede el número máximo de puntos
+        }
+
+        temperatureData.push(temperature);
+        humidityData.push(humidity);
+
+        updateCharts();
+      });
+    }
+
+    function updateCharts() {
+      temperatureChart.data.labels = temperatureData.map((_, i) => i + 1);
+      humidityChart.data.labels = humidityData.map((_, i) => i + 1);
+
+      temperatureChart.data.datasets[0].data = temperatureData;
+      humidityChart.data.datasets[0].data = humidityData;
+
+      temperatureChart.update();
+      humidityChart.update();
+    }
+
+    $(document).ready(function() {
+      var ctx1 = document.getElementById('temperatureChart').getContext('2d');
+      var ctx2 = document.getElementById('humidityChart').getContext('2d');
+
+      temperatureChart = new Chart(ctx1, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [{
+            label: 'Temperatura (°C)',
+            data: [],
+            borderColor: 'rgba(255, 99, 132, 1)',
+            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 50 // Escala máxima para temperatura
+            }
+          }
+        }
+      });
+
+      humidityChart = new Chart(ctx2, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [{
+            label: 'Humedad (%)',
+            data: [],
+            borderColor: 'rgba(54, 162, 235, 1)',
+            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 100 // Escala máxima para humedad
+            }
+          }
+        }
+      });
+
+      updateData();
+      setInterval(updateData, 2000); // Actualizar cada 2 segundos
+    });
+  </script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background-color: #fff;
+    }
+    h1 {
+      color: #333;
+    }
+    .container {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+    .box {
+      width: 250px;
+      height: 250px;
+      padding: 20px;
+      margin: 10px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      font-size: 18px;
+      color: #000;
+      position: relative;
+    }
+    .temperature-box {
+      background: url('https://cdn-icons-png.flaticon.com/512/566/566675.png') no-repeat center center;
+      background-size: cover;
+    }
+    .humidity-box {
+      background: url('https://cdn-icons-png.flaticon.com/512/3262/3262966.png') no-repeat center center;
+      background-size: cover;
+    }
+    .box p {
+      background-color: rgba(255, 255, 255, 0.7);
+      padding: 10px;
+      border-radius: 8px;
+    }
+    .chart-container {
+      width: 45%;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>MONITOR DHT22</h1>
+  <div class="container">
+    <div class="box temperature-box">
+      <p>Temperatura: <span id="temperature"></span> °C</p>
+    </div>
+    <div class="box humidity-box">
+      <p>Humedad: <span id="humidity"></span> %</p>
+    </div>
+  </div>
+  <div class="container">
+    <div class="chart-container">
+      <canvas id="temperatureChart"></canvas>
+    </div>
+    <div class="chart-container">
+      <canvas id="humidityChart"></canvas>
+    </div>
+  </div>
+</body>
+</html>
